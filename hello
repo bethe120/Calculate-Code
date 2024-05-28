@@ -1,0 +1,136 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <fstream>
+#include <sstream>
+
+// 銀行系統命名空間
+namespace BankSystem {
+
+    // 帳戶類
+    class Account {
+    public:
+        Account(std::string owner, double balance) : owner(owner), balance(balance) {}
+
+        void deposit(double amount) {
+            std::lock_guard<std::mutex> lock(account_mutex);
+            balance += amount;
+        }
+
+        void withdraw(double amount) {
+            std::lock_guard<std::mutex> lock(account_mutex);
+            if (amount <= balance) {
+                balance -= amount;
+            } else {
+                std::cout << "Insufficient funds" << std::endl;
+            }
+        }
+
+        double getBalance() const {
+            return balance;
+        }
+
+        std::string getOwner() const {
+            return owner;
+        }
+
+    private:
+        std::string owner;
+        double balance;
+        mutable std::mutex account_mutex;
+    };
+
+    // 客戶類
+    class Customer {
+    public:
+        Customer(std::string name) : name(name) {}
+
+        void addAccount(Account* account) {
+            accounts.push_back(account);
+        }
+
+        void showAccounts() const {
+            std::cout << "Accounts for " << name << ":" << std::endl;
+            for (const auto& account : accounts) {
+                std::cout << "  Owner: " << account->getOwner() << ", Balance: " << account->getBalance() << std::endl;
+            }
+        }
+
+    private:
+        std::string name;
+        std::vector<Account*> accounts;
+    };
+
+    // 銀行類
+    class Bank {
+    public:
+        void addCustomer(Customer* customer) {
+            customers.push_back(customer);
+        }
+
+        void showCustomers() const {
+            for (const auto& customer : customers) {
+                customer->showAccounts();
+            }
+        }
+
+    private:
+        std::vector<Customer*> customers;
+    };
+
+    // 模擬函數
+    void simulateTransactions(Account& account, int id) {
+        for (int i = 0; i < 5; ++i) {
+            account.deposit(100.0 * id);
+            account.withdraw(50.0 * id);
+        }
+    }
+}
+
+int main() {
+    using namespace BankSystem;
+
+    // 創建帳戶
+    Account account1("Alice", 1000.0);
+    Account account2("Bob", 1500.0);
+
+    // 創建客戶
+    Customer customer1("Alice");
+    Customer customer2("Bob");
+
+    // 客戶添加帳戶
+    customer1.addAccount(&account1);
+    customer2.addAccount(&account2);
+
+    // 創建銀行
+    Bank bank;
+    bank.addCustomer(&customer1);
+    bank.addCustomer(&customer2);
+
+    // 顯示客戶和帳戶
+    bank.showCustomers();
+
+    // 模擬交易
+    std::thread t1(simulateTransactions, std::ref(account1), 1);
+    std::thread t2(simulateTransactions, std::ref(account2), 2);
+
+    t1.join();
+    t2.join();
+
+    // 顯示交易後的客戶和帳戶
+    bank.showCustomers();
+
+    // 保存到文件
+    std::ofstream file("bank_data.txt");
+    if (file.is_open()) {
+        for (const auto& customer : { &customer1, &customer2 }) {
+            file << "Accounts for " << customer->showAccounts() << std::endl;
+        }
+        file.close();
+    }
+
+    return 0;
+}
+
