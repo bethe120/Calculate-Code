@@ -57,6 +57,14 @@ namespace BankSystem {
                 std::cout << "  Owner: " << account->getOwner() << ", Balance: " << account->getBalance() << std::endl;
             }
         }
+resta = {} 
+for reat in resta:
+    rest = resta.get(reat)
+    try:
+       rest<o,resta[rear-1]
+    except:
+       return False
+    
 
     private:
         std::string name;
